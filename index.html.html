@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محيبس هانزو | الإصدار الاحترافي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-glow: #00ffcc; 
+            --bg-black: #050505;
+            --card-gray: #121212;
+            --error-red: #ff3131;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* شاشة التحقق */
+        #auth-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-black);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 999;
+        }
+
+        .auth-box {
+            text-align: center; padding: 40px; border: 1px solid var(--primary-glow);
+            background: var(--card-gray); border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+        }
+
+        input[type=text] {
+            background: #000; border: 1px solid #333; color: var(--primary-glow);
+            padding: 15px; font-size: 1.5rem; text-align: center;
+            outline: none; margin: 20px 0; border-radius: 5px; letter-spacing: 5px;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        /* واجهة اللعبة */
+        #game-interface { display: none; flex-direction: column; align-items: center; width: 100%; padding: 20px; }
+
+        h1 { font-size: 3rem; letter-spacing: 2px; margin: 0; color: var(--primary-glow); text-shadow: 0 0 20px var(--primary-glow); }
+        .subtitle { color: #555; font-size: 1rem; margin-bottom: 20px; }
+
+        .settings-btn {
+            background: rgba(0, 255, 204, 0.1); border: 1px solid var(--primary-glow);
+            color: var(--primary-glow); padding: 10px 25px; border-radius: 5px;
+            cursor: pointer; font-weight: bold; margin: 10px 0; font-family: 'Cairo', sans-serif;
+            transition: 0.3s;
+        }
+        .settings-btn:hover { background: var(--primary-glow); color: black; }
+
+        .panel {
+            background: var(--card-gray); padding: 15px; border-radius: 10px;
+            border: 1px solid #333; margin-bottom: 20px; display: none;
+            flex-direction: column; align-items: center; gap: 10px;
+        }
+
+        .game-grid {
+            display: grid;
+            gap: 25px;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .hand-container { display: flex; flex-direction: column; align-items: center; }
+        .hand-number { font-size: 1.8rem; color: var(--primary-glow); margin-bottom: 5px; font-weight: bold; }
+
+        .hand-large {
+            width: 120px; height: 120px;
+            background: #1a1a1a; border: 2px solid #333; border-radius: 15px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 60px; cursor: pointer; transition: 0.3s;
+        }
+
+        .hand-large:active { transform: scale(0.9); }
+        .hand-large:hover { border-color: var(--primary-glow); transform: translateY(-5px); }
+
+        .winner { border-color: var(--primary-glow) !important; box-shadow: 0 0 30px var(--primary-glow) !important; }
+        .loser { opacity: 0.1; filter: grayscale(1); pointer-events: none; }
+
+        .footer-branding { margin-top: 40px; font-size: 0.9rem; color: #444; letter-spacing: 1px; }
+        .footer-branding b { color: var(--primary-glow); }
+
+        #error-msg { color: var(--error-red); font-size: 0.9rem; margin-top: 5px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h2 style="color: var(--primary-glow); margin: 0;">نظام الحماية</h2>
+            <p style="color: #888;">أدخل رمز الدخول لتشغيل اللعبة</p>
+            <input type="text" id="passInput" placeholder="الرمز" maxlength="5">
+            <br>
+            <button class="settings-btn" onclick="verifyCode()">دخول</button>
+            <div id="error-msg">الرمز غير صحيح!</div>
+        </div>
+    </div>
+
+    <div id="game-interface">
+        <h1>لعبة المحيبس</h1>
+        <div class="subtitle">تطوير هانزو (HANZO2DIS)</div>
+
+        <button class="settings-btn" onclick="toggleMenu()">⚙️ إعدادات الأيدي</button>
+
+        <div class="panel" id="settingsPanel">
+            <label style="color: #888; font-size: 0.8rem;">اختر عدد الأيدي (من 2 إلى 10):</label>
+            <input type="range" id="handRange" min="2" max="10" value="10" oninput="updateHands(this.value)">
+            <div style="font-size: 1.8rem; color: var(--primary-glow);" id="countDisplay">10</div>
+        </div>
+
+        <div class="game-grid" id="mainGrid"></div>
+
+        <div id="status-bar" style="font-size: 1.8rem; font-weight: bold; height: 50px; margin-top: 10px;">طِلّع المحيبس!</div>
+        <button class="settings-btn" style="padding: 10px 50px; font-size: 1.2rem;" onclick="init()">بدء لعبة جديدة</button>
+
+        <div class="footer-branding">
+            جميع الحقوق محفوظة لـ <b>HANZO2DIS</b> © 2026
+        </div>
+    </div>
+
+    <script>
+        // دالة للنطق بصوت مسموع
+        function speak(text) {
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            msg.lang = 'ar-SA';
+            msg.rate = 1.0;
+            window.speechSynthesis.speak(msg);
+        }
+
+        // التحقق من الرمز 1999S
+        function verifyCode() {
+            const input = document.getElementById('passInput').value;
+            if (input.toUpperCase() === "1999S") {
+                document.getElementById('auth-screen').style.display = "none";
+                document.getElementById('game-interface').style.display = "flex";
+                init();
+            } else {
+                document.getElementById('error-msg').style.display = "block";
+                document.getElementById('passInput').value = "";
+            }
+        }
+
+        const grid = document.getElementById('mainGrid');
+        const statusBar = document.getElementById('status-bar');
+        const countDisplay = document.getElementById('countDisplay');
+        const panel = document.getElementById('settingsPanel');
+        
+        let targetIdx;
+        let isPlaying = true;
+        let handCount = 10;
+
+        function toggleMenu() {
+            panel.style.display = (panel.style.display === "flex") ? "none" : "flex";
+        }
+
+        function updateHands(val) {
+            handCount = parseInt(val);
+            countDisplay.innerText = val;
+            init();
+        }
+
+        function init() {
+            grid.innerHTML = '';
+            targetIdx = Math.floor(Math.random() * handCount);
+            isPlaying = true;
+            statusBar.innerText = "طِلّع المحيبس!";
+            statusBar.style.color = "#fff";
+
+            // تقسيم الأيدي لصفين
+            let columns = Math.ceil(handCount / 2);
+            grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+            for (let i = 0; i < handCount; i++) {
+                const container = document.createElement('div');
+                container.className = 'hand-container';
+                
+                const label = document.createElement('div');
+                label.className = 'hand-number';
+                label.innerText = (i + 1);
+
+                const box = document.createElement('div');
+                box.className = 'hand-large';
+                box.innerHTML = '✊';
+                box.onclick = () => verify(i, box);
+
+                container.appendChild(label);
+                container.appendChild(box);
+                grid.appendChild(container);
+            }
+        }
+
+        function verify(idx, el) {
+            if (!isPlaying) return;
+            if (idx === targetIdx) {
+                el.innerHTML = '💍'; el.classList.add('winner');
+                statusBar.innerText = "جيب البات! 🎉";
+                statusBar.style.color = "var(--primary-glow)";
+                speak("جيب البات");
+                isPlaying = false;
+            } else {
+                el.innerHTML = '✋'; el.classList.add('loser');
+                statusBar.innerText = "طكه!";
+                statusBar.style.color = "var(--error-red)";
+                speak("طكه");
+            }
+        }
+    </script>
+</body>
+</html>
